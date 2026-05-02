@@ -1,1 +1,59 @@
 
+from fastapi import FastAPI, Query
+import pandas as pd
+import pickle
+
+# -----------------------------
+# INITIALIZE API
+# -----------------------------
+app = FastAPI(title="Telehealth Forecast API")
+
+# -----------------------------
+# LOAD TRAINED MODEL (ONLY ONCE)
+# -----------------------------
+with open("models/telehealth_model.pkl", "rb") as f:
+    model = pickle.load(f)
+
+# -----------------------------
+# HOME ROUTE
+# -----------------------------
+@app.get("/")
+def home():
+    return {"message": "Telehealth Forecast API is running"}
+
+# -----------------------------
+# PREDICTION ROUTE
+# -----------------------------
+@app.get("/predict")
+def predict(
+    year: int = Query(..., description="Forecast year"),
+    region: str = Query(..., description="Region name"),
+    total_enrollment: float = Query(..., description="Total enrollment"),
+    telehealth_users: float = Query(..., description="Number of telehealth users")
+):
+    try:
+        # Calculate current rate (for interpretation)
+        calculated_input_rate = (telehealth_users / total_enrollment) * 100
+
+        # Prepare input for model
+        input_data = pd.DataFrame([{
+            "year": year,
+            "region": region,
+            "total_enrollment": total_enrollment,
+            "telehealth_users": telehealth_users
+        }])
+
+        # Predict
+        prediction = model.predict(input_data)[0]
+
+        return {
+            "year": year,
+            "region": region,
+            "total_enrollment": total_enrollment,
+            "telehealth_users": telehealth_users,
+            "calculated_input_rate": round(calculated_input_rate, 2),
+            "forecasted_telehealth_rate": round(float(prediction), 2)
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
