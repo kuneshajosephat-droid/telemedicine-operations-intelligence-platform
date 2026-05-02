@@ -1,4 +1,4 @@
-
+ 
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -18,35 +18,49 @@ st.set_page_config(
 )
 
 st.title("📊 Telemedicine Operations Intelligence Platform")
-st.caption("Cloud-based healthcare analytics platform powered by AWS S3, Glue, Athena, Python, Streamlit, and FastAPI")
+st.caption("Cloud-based healthcare analytics platform powered by AWS S3, Athena, Python, Streamlit, and FastAPI")
 
 # -----------------------------
-# LOAD DATA FROM ATHENA
+# LOAD DATA FROM ATHENA WITH LOCAL FALLBACK
 # -----------------------------
+
 @st.cache_data(ttl=600)
 def load_data():
-    conn = connect(
-        s3_staging_dir="s3://telemedicine-operations-intelligence-kunesha/athena-results/",
-        region_name="us-east-1"
-    )
+    try:
+        conn = connect(
+            s3_staging_dir="s3://telemedicine-operations-intelligence-kunesha/athena-results/",
+            region_name="us-east-1"
+        )
 
-    query = """
-    SELECT year, quarter, region, total_enrollment, telehealth_users, telehealth_rate
-    FROM telehealth_db.processed
-    """
+        query = """
+        SELECT year, quarter, region, total_enrollment, telehealth_users, telehealth_rate
+        FROM telehealth_db.processed
+        """
 
-    df = pd.read_sql(query, conn)
+        df = pd.read_sql(query, conn)
+        st.success("Data loaded from AWS Athena.")
 
-    df.columns = df.columns.str.lower()
-    df = df[df["quarter"] == "Overall"].copy()
+    except Exception:
+        st.warning("AWS Athena access failed. Loading local CSV fallback for demo.")
+
+        df = pd.read_csv("telehealth_data.csv")
+
+    df.columns = df.columns.str.lower().str.strip()
+
+    if "quarter" in df.columns:
+        df = df[df["quarter"].astype(str).str.strip().str.lower() == "overall"].copy()
 
     df["year"] = df["year"].astype(int)
-    df["telehealth_rate"] = df["telehealth_rate"] * 100
+
+    if df["telehealth_rate"].max() <= 1:
+        df["telehealth_rate"] = df["telehealth_rate"] * 100
 
     return df
 
-
 df = load_data()
+
+
+
 
 # -----------------------------
 # SIDEBAR FILTERS
@@ -176,13 +190,11 @@ if forecast_data["year"].nunique() >= 3 and forecast_data["region"].nunique() >=
     X = model_df[["year", "region_code"]]
     y = model_df["telehealth_rate"]
 
-    # Linear Regression
     lr = LinearRegression()
     lr.fit(X, y)
     lr_preds = lr.predict(X)
     lr_mae = mean_absolute_error(y, lr_preds)
 
-    # Random Forest
     rf = RandomForestRegressor(
         n_estimators=200,
         random_state=42,
@@ -201,7 +213,6 @@ if forecast_data["year"].nunique() >= 3 and forecast_data["region"].nunique() >=
     best_model_name = "Random Forest Regressor" if rf_mae < lr_mae else "Linear Regression"
     st.success(f"Best performing model: **{best_model_name}**")
 
-    # Forecast next 3 years
     last_year = int(model_df["year"].max())
     future_years = [last_year + 1, last_year + 2, last_year + 3]
 
@@ -514,3 +525,4 @@ if st.button("🚀 Generate API Forecast"):
     except Exception as e:
         st.error("API connection failed. Make sure FastAPI is running.")
         st.write(str(e))
+
