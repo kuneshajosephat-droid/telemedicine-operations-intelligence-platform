@@ -1,5 +1,5 @@
 
-📊 Telemedicine Analytics Platform — Architecture
+📊  Architecture
 
 This project implements an end-to-end data engineering and machine learning pipeline for analyzing telehealth adoption across regions.
 
