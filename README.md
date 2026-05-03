@@ -21,10 +21,10 @@ The platform supports *data-driven healthcare decision-making*  by identifying t
 [Architecture](docs/architecture.png)
 
 ## 📊 Interactive Dashboard
-![Dashboard](docs/dashboard_main.png)
+[Dashboard](docs/dashboard.png)
 
 ## 🔌 API Integration (FastAPI)
-[API](docs/api_docs.png)
+[API](docs/api.png)
 
 The API exposes a real-time prediction endpoint:
 GET /predict
