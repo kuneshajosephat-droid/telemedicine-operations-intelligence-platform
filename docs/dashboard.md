@@ -8,7 +8,7 @@ Total Enrollment
 Total Telehealth Users
 Average Telehealth Rate
 
-👉 Example (from your dashboard):
+👉 Example ( dashboard):
 
 595M+ enrollment
 188M+ telehealth users
